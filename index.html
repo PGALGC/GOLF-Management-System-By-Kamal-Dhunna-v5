@@ -1794,7 +1794,13 @@
                 document.getElementById('playerPHCPercentage').addEventListener('change', () => this.calculatePHC());
                 
                 // Scorecard
-                document.getElementById('refreshScorecard').addEventListener('click', () => this.renderScorecard());
+                const refreshScorecardBtn = document.getElementById('refreshScorecard');
+                if (refreshScorecardBtn) {
+                    refreshScorecardBtn.addEventListener('click', () => {
+                        this.renderScorecard();
+                        this.showToast('Scorecard refreshed', 'success');
+                    });
+                }
                 document.getElementById('scorecardCourseSelect').addEventListener('change', () => {
                     this.saveScorecardSettings();
                     this.renderScorecard();
@@ -1922,7 +1928,13 @@
                 });
                 
                 // Leaderboard buttons
-                document.getElementById('refreshLeaderboard').addEventListener('click', () => this.renderLeaderboard());
+                const refreshLeaderboardBtn = document.getElementById('refreshLeaderboard');
+                if (refreshLeaderboardBtn) {
+                    refreshLeaderboardBtn.addEventListener('click', () => {
+                        this.renderLeaderboard();
+                        this.showToast('Leaderboard refreshed', 'success');
+                    });
+                }
                 document.getElementById('clearAllMoney').addEventListener('click', () => {
                     if (confirm('Clear all money values from leaderboard?')) {
                         this.leaderboardMoney = {};
@@ -1992,7 +2004,13 @@
                 document.getElementById('createMixedScore').addEventListener('click', () => this.showCreateTeamModal('MixedScore'));
                 document.getElementById('manualCreateMixedScore').addEventListener('click', () => this.showManualTeamModal('MixedScore'));
                 document.getElementById('calculateMixedScore').addEventListener('click', () => this.calculateMixedScore());
-                document.getElementById('refreshComps').addEventListener('click', () => this.renderCompsResults());
+                const refreshCompsBtn = document.getElementById('refreshComps');
+                if (refreshCompsBtn) {
+                    refreshCompsBtn.addEventListener('click', () => {
+                        this.renderCompsResults();
+                        this.showToast('Competitions refreshed', 'success');
+                    });
+                }
                 document.getElementById('editAllComps').addEventListener('click', () => this.showEditAllCompsModal());
                 
                 // Team modal
