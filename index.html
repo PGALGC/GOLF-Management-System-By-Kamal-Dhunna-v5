@@ -1235,6 +1235,18 @@
                                 <button id="calculateMixedScore" class="btn-primary" style="grid-column: 1 / -1;">🧮 Calculate</button>
                             </div>
                         </div>
+                        
+                        <div class="comp-card">
+                            <h3>Team A vs Team B</h3>
+                            <div class="comp-description">
+                                A head-to-head team competition. Players can be randomly drawn or manually assigned to Team A or Team B. Each player's Stableford and Gross scores are calculated and totaled for their team.
+                            </div>
+                            <div class="comp-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                <button id="createTeamAvsB" class="btn-success">🎲 Auto Draw</button>
+                                <button id="manualCreateTeamAvsB" class="btn-info">✍️ Manual Add</button>
+                                <button id="calculateTeamAvsB" class="btn-primary" style="grid-column: 1 / -1;">🧮 Calculate Scores</button>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="compsResultsContainer" style="margin-top: 20px;">
@@ -1562,6 +1574,57 @@
         </div>
     </div>
     
+    <!-- Team A vs Team B Modal -->
+    <div id="teamAvsBModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <h3 id="teamAvsBModalTitle">Team A vs Team B</h3>
+            <form id="teamAvsBFormElement">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label for="teamAvsBCourseSelect" style="font-size: 11px;">Course *</label>
+                    <select id="teamAvsBCourseSelect" required style="padding: 6px; font-size: 12px; width: 100%;">
+                        <option value="">Select course...</option>
+                    </select>
+                </div>
+                
+                <div id="teamAvsBPlayersSection" style="display: none; margin-top: 15px;">
+                    <h4 style="font-size: 0.9rem; margin-bottom: 10px; color: #2c3e50;">Players Assignment</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <!-- Team A -->
+                        <div>
+                            <div style="background: #ebf5fb; padding: 8px; border-radius: 3px; border: 2px solid #3498db; margin-bottom: 8px;">
+                                <strong style="color: #2c3e50;">Team A (<span id="teamACount">0</span> players)</strong>
+                            </div>
+                            <div id="teamAPlayersList" style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 3px; padding: 8px; background: #f8f9fa;">
+                                <!-- Team A players will be listed here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Team B -->
+                        <div>
+                            <div style="background: #fadbd8; padding: 8px; border-radius: 3px; border: 2px solid #e74c3c; margin-bottom: 8px;">
+                                <strong style="color: #2c3e50;">Team B (<span id="teamBCount">0</span> players)</strong>
+                            </div>
+                            <div id="teamBPlayersList" style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 3px; padding: 8px; background: #f8f9fa;">
+                                <!-- Team B players will be listed here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 3px solid #f39c12; border-radius: 3px; font-size: 11px;">
+                        <strong>ℹ️ Instructions:</strong> Click on any player to move them between teams or remove them.
+                    </div>
+                </div>
+                
+                <div class="form-actions" style="display: flex; gap: 6px; margin-top: 15px; justify-content: flex-end;">
+                    <button type="button" id="teamAvsBAutoDraw" class="btn-success" style="display: none;">🎲 Auto Draw Players</button>
+                    <button type="button" id="confirmTeamAvsB" class="btn-primary">💾 Save Teams</button>
+                    <button type="button" id="cancelTeamAvsB" class="btn-secondary">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <!-- File inputs -->
     <input type="file" id="restoreFileInput" accept=".json" style="display: none;">
 
@@ -1602,7 +1665,8 @@
                 fourBBB: [],
                 fourPersonTeams: [],
                 best3From4: [],
-                mixedScore: []
+                mixedScore: [],
+                teamAvsB: { teamA: [], teamB: [], courseName: '' }
             },
             
             // Track current competition type for modal
@@ -1620,6 +1684,9 @@
             // Master Leaderboard money data
             masterLeaderboardMoney: {},
             masterLeaderboardCurrency: '£',
+            
+            // Temporary Team A vs Team B data for modal
+            tempTeamAvsB: null,
             
             init() {
                 this.loadData();
@@ -2004,6 +2071,9 @@
                 document.getElementById('createMixedScore').addEventListener('click', () => this.showCreateTeamModal('MixedScore'));
                 document.getElementById('manualCreateMixedScore').addEventListener('click', () => this.showManualTeamModal('MixedScore'));
                 document.getElementById('calculateMixedScore').addEventListener('click', () => this.calculateMixedScore());
+                document.getElementById('createTeamAvsB').addEventListener('click', () => this.showTeamAvsBAutoDraw());
+                document.getElementById('manualCreateTeamAvsB').addEventListener('click', () => this.showTeamAvsBManualAdd());
+                document.getElementById('calculateTeamAvsB').addEventListener('click', () => this.calculateTeamAvsB());
                 const refreshCompsBtn = document.getElementById('refreshComps');
                 if (refreshCompsBtn) {
                     refreshCompsBtn.addEventListener('click', () => {
@@ -2048,6 +2118,12 @@
                 });
                 document.getElementById('confirmManualTeam').addEventListener('click', () => this.confirmManualTeam());
                 document.getElementById('cancelManualTeam').addEventListener('click', () => this.hideManualTeamModal());
+                
+                // Team A vs Team B modal
+                document.getElementById('teamAvsBCourseSelect').addEventListener('change', () => this.teamAvsBCourseChanged());
+                document.getElementById('teamAvsBAutoDraw').addEventListener('click', () => this.teamAvsBAutoDrawInModal());
+                document.getElementById('confirmTeamAvsB').addEventListener('click', () => this.confirmTeamAvsB());
+                document.getElementById('cancelTeamAvsB').addEventListener('click', () => this.hideTeamAvsBModal());
                 
                 // Random Draw buttons
                 document.getElementById('generateRandomDraw').addEventListener('click', () => this.generateRandomDraw());
@@ -5140,6 +5216,380 @@
                 this.showToast('4 Person Team Mixed Score calculated!', 'success');
             },
             
+            // Team A vs Team B Functions
+            showTeamAvsBAutoDraw() {
+                if (this.players.length < 2) {
+                    this.showToast('Need at least 2 players for Team A vs Team B', 'warning');
+                    return;
+                }
+                
+                if (this.courses.length === 0) {
+                    this.showToast('Please add a course first', 'warning');
+                    return;
+                }
+                
+                // Open modal in auto-draw mode
+                document.getElementById('teamAvsBModalTitle').textContent = 'Team A vs Team B - Auto Draw';
+                document.getElementById('teamAvsBAutoDraw').style.display = 'inline-flex';
+                
+                // Populate course dropdown
+                const courseSelect = document.getElementById('teamAvsBCourseSelect');
+                courseSelect.innerHTML = '<option value="">Select course...</option>';
+                this.courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course.name;
+                    option.textContent = course.name;
+                    courseSelect.appendChild(option);
+                });
+                
+                // Reset teams
+                this.tempTeamAvsB = { teamA: [], teamB: [], courseName: '' };
+                document.getElementById('teamAvsBPlayersSection').style.display = 'none';
+                
+                document.getElementById('teamAvsBModal').style.display = 'flex';
+            },
+            
+            showTeamAvsBManualAdd() {
+                if (this.players.length === 0) {
+                    this.showToast('No players available', 'warning');
+                    return;
+                }
+                
+                if (this.courses.length === 0) {
+                    this.showToast('Please add a course first', 'warning');
+                    return;
+                }
+                
+                // Open modal in manual mode
+                document.getElementById('teamAvsBModalTitle').textContent = 'Team A vs Team B - Manual Assignment';
+                document.getElementById('teamAvsBAutoDraw').style.display = 'none';
+                
+                // Populate course dropdown
+                const courseSelect = document.getElementById('teamAvsBCourseSelect');
+                courseSelect.innerHTML = '<option value="">Select course...</option>';
+                this.courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course.name;
+                    option.textContent = course.name;
+                    courseSelect.appendChild(option);
+                });
+                
+                // Load existing teams if any
+                if (this.comps.teamAvsB && this.comps.teamAvsB.courseName) {
+                    this.tempTeamAvsB = JSON.parse(JSON.stringify(this.comps.teamAvsB));
+                    courseSelect.value = this.tempTeamAvsB.courseName;
+                    this.teamAvsBCourseChanged();
+                } else {
+                    this.tempTeamAvsB = { teamA: [], teamB: [], courseName: '' };
+                    document.getElementById('teamAvsBPlayersSection').style.display = 'none';
+                }
+                
+                document.getElementById('teamAvsBModal').style.display = 'flex';
+            },
+            
+            hideTeamAvsBModal() {
+                document.getElementById('teamAvsBModal').style.display = 'none';
+                this.tempTeamAvsB = null;
+            },
+            
+            teamAvsBCourseChanged() {
+                const courseName = document.getElementById('teamAvsBCourseSelect').value;
+                
+                if (!courseName) {
+                    document.getElementById('teamAvsBPlayersSection').style.display = 'none';
+                    return;
+                }
+                
+                // Initialize tempTeamAvsB if null
+                if (!this.tempTeamAvsB) {
+                    this.tempTeamAvsB = { teamA: [], teamB: [], courseName: '' };
+                }
+                
+                // If changing course, clear teams
+                if (this.tempTeamAvsB.courseName && this.tempTeamAvsB.courseName !== courseName) {
+                    if (confirm('Changing course will clear current team assignments. Continue?')) {
+                        this.tempTeamAvsB = { teamA: [], teamB: [], courseName: courseName };
+                    } else {
+                        // Revert dropdown to previous course
+                        document.getElementById('teamAvsBCourseSelect').value = this.tempTeamAvsB.courseName;
+                        return;
+                    }
+                } else {
+                    this.tempTeamAvsB.courseName = courseName;
+                }
+                
+                document.getElementById('teamAvsBPlayersSection').style.display = 'block';
+                this.renderTeamAvsBPlayers();
+            },
+            
+            teamAvsBAutoDrawInModal() {
+                const courseName = this.tempTeamAvsB.courseName;
+                
+                if (!courseName) {
+                    this.showToast('Please select a course first', 'warning');
+                    return;
+                }
+                
+                const coursePlayers = this.players.filter(p => p.course === courseName);
+                
+                if (coursePlayers.length < 2) {
+                    this.showToast('Need at least 2 players on this course', 'warning');
+                    return;
+                }
+                
+                // Randomly shuffle players
+                const shuffled = [...coursePlayers].sort(() => Math.random() - 0.5);
+                
+                // Split into two teams
+                const halfWay = Math.ceil(shuffled.length / 2);
+                this.tempTeamAvsB.teamA = shuffled.slice(0, halfWay);
+                this.tempTeamAvsB.teamB = shuffled.slice(halfWay);
+                
+                this.renderTeamAvsBPlayers();
+                this.showToast(`Auto-draw complete: Team A (${this.tempTeamAvsB.teamA.length}) vs Team B (${this.tempTeamAvsB.teamB.length})`, 'success');
+            },
+            
+            renderTeamAvsBPlayers() {
+                const teamAList = document.getElementById('teamAPlayersList');
+                const teamBList = document.getElementById('teamBPlayersList');
+                const courseName = this.tempTeamAvsB.courseName;
+                
+                // Update counts
+                document.getElementById('teamACount').textContent = this.tempTeamAvsB.teamA.length;
+                document.getElementById('teamBCount').textContent = this.tempTeamAvsB.teamB.length;
+                
+                // Render Team A players
+                teamAList.innerHTML = '';
+                if (this.tempTeamAvsB.teamA.length === 0) {
+                    teamAList.innerHTML = '<p style="text-align: center; color: #7f8c8d; font-size: 0.85rem; margin: 10px 0;">No players in Team A</p>';
+                } else {
+                    this.tempTeamAvsB.teamA.forEach(player => {
+                        const playerDiv = document.createElement('div');
+                        playerDiv.style.cssText = 'margin-bottom: 6px; padding: 6px; background: white; border-radius: 3px; border: 1px solid #3498db; cursor: pointer; transition: all 0.2s;';
+                        playerDiv.innerHTML = `
+                            <div style="font-weight: bold; font-size: 0.85rem;">${player.name}</div>
+                            <div style="font-size: 0.7rem; color: #7f8c8d;">PHC: ${player.phc || 0}</div>
+                        `;
+                        playerDiv.onmouseover = () => playerDiv.style.background = '#ebf5fb';
+                        playerDiv.onmouseout = () => playerDiv.style.background = 'white';
+                        playerDiv.onclick = () => this.teamAvsBPlayerClick(player.id, 'A');
+                        teamAList.appendChild(playerDiv);
+                    });
+                }
+                
+                // Render Team B players
+                teamBList.innerHTML = '';
+                if (this.tempTeamAvsB.teamB.length === 0) {
+                    teamBList.innerHTML = '<p style="text-align: center; color: #7f8c8d; font-size: 0.85rem; margin: 10px 0;">No players in Team B</p>';
+                } else {
+                    this.tempTeamAvsB.teamB.forEach(player => {
+                        const playerDiv = document.createElement('div');
+                        playerDiv.style.cssText = 'margin-bottom: 6px; padding: 6px; background: white; border-radius: 3px; border: 1px solid #e74c3c; cursor: pointer; transition: all 0.2s;';
+                        playerDiv.innerHTML = `
+                            <div style="font-weight: bold; font-size: 0.85rem;">${player.name}</div>
+                            <div style="font-size: 0.7rem; color: #7f8c8d;">PHC: ${player.phc || 0}</div>
+                        `;
+                        playerDiv.onmouseover = () => playerDiv.style.background = '#fadbd8';
+                        playerDiv.onmouseout = () => playerDiv.style.background = 'white';
+                        playerDiv.onclick = () => this.teamAvsBPlayerClick(player.id, 'B');
+                        teamBList.appendChild(playerDiv);
+                    });
+                }
+                
+                // Clear any existing available players section
+                const existingAvailable = document.getElementById('teamAvsBAvailablePlayers');
+                if (existingAvailable) {
+                    existingAvailable.remove();
+                }
+                
+                // Show available players to add
+                const coursePlayers = this.players.filter(p => p.course === courseName);
+                const assignedIds = new Set([
+                    ...this.tempTeamAvsB.teamA.map(p => p.id),
+                    ...this.tempTeamAvsB.teamB.map(p => p.id)
+                ]);
+                const availablePlayers = coursePlayers.filter(p => !assignedIds.has(p.id));
+                
+                // Find the teams grid container
+                const teamsGrid = teamAList.parentElement.parentElement;
+                const playersSection = document.getElementById('teamAvsBPlayersSection');
+                
+                if (availablePlayers.length > 0) {
+                    const availableDiv = document.createElement('div');
+                    availableDiv.id = 'teamAvsBAvailablePlayers';
+                    availableDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 3px; border: 1px solid #e0e0e0;';
+                    availableDiv.innerHTML = '<strong style="font-size: 0.85rem; color: #2c3e50; margin-bottom: 8px; display: block;">Available Players (click to assign):</strong>';
+                    
+                    const availableGrid = document.createElement('div');
+                    availableGrid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 8px;';
+                    
+                    availablePlayers.forEach(player => {
+                        const playerDiv = document.createElement('div');
+                        playerDiv.style.cssText = 'padding: 6px; background: white; border-radius: 3px; border: 1px solid #95a5a6; cursor: pointer; transition: all 0.2s;';
+                        playerDiv.innerHTML = `
+                            <div style="font-weight: bold; font-size: 0.85rem;">${player.name}</div>
+                            <div style="font-size: 0.7rem; color: #7f8c8d;">PHC: ${player.phc || 0}</div>
+                        `;
+                        playerDiv.onmouseover = () => playerDiv.style.background = '#ecf0f1';
+                        playerDiv.onmouseout = () => playerDiv.style.background = 'white';
+                        playerDiv.onclick = () => this.teamAvsBPlayerClick(player.id, 'unassigned');
+                        availableGrid.appendChild(playerDiv);
+                    });
+                    
+                    availableDiv.appendChild(availableGrid);
+                    
+                    // Insert after the teams grid
+                    teamsGrid.after(availableDiv);
+                }
+            },
+            
+            teamAvsBPlayerClick(playerId, currentTeam) {
+                const player = this.players.find(p => p.id === playerId);
+                if (!player) return;
+                
+                if (currentTeam === 'unassigned') {
+                    // Ask which team to add to using a more explicit prompt
+                    const teamChoice = prompt(`Assign ${player.name} to which team?\n\nEnter 'A' for Team A or 'B' for Team B:`, 'A');
+                    
+                    if (!teamChoice) {
+                        // User cancelled
+                        return;
+                    }
+                    
+                    const choice = teamChoice.toUpperCase().trim();
+                    if (choice === 'A') {
+                        this.tempTeamAvsB.teamA.push(player);
+                        this.showToast(`${player.name} added to Team A`, 'success');
+                    } else if (choice === 'B') {
+                        this.tempTeamAvsB.teamB.push(player);
+                        this.showToast(`${player.name} added to Team B`, 'success');
+                    } else {
+                        this.showToast('Invalid choice. Please enter A or B', 'error');
+                        return;
+                    }
+                } else if (currentTeam === 'A') {
+                    // Offer to move to Team B or remove
+                    const choice = prompt(`${player.name} is in Team A.\n\nWhat would you like to do?\nEnter 'B' to move to Team B\nEnter 'R' to remove\nCancel to keep in Team A:`, 'B');
+                    
+                    if (!choice) {
+                        return;
+                    }
+                    
+                    const action = choice.toUpperCase().trim();
+                    if (action === 'B') {
+                        this.tempTeamAvsB.teamA = this.tempTeamAvsB.teamA.filter(p => p.id !== playerId);
+                        this.tempTeamAvsB.teamB.push(player);
+                        this.showToast(`${player.name} moved to Team B`, 'success');
+                    } else if (action === 'R') {
+                        this.tempTeamAvsB.teamA = this.tempTeamAvsB.teamA.filter(p => p.id !== playerId);
+                        this.showToast(`${player.name} removed from teams`, 'warning');
+                    } else {
+                        return;
+                    }
+                } else if (currentTeam === 'B') {
+                    // Offer to move to Team A or remove
+                    const choice = prompt(`${player.name} is in Team B.\n\nWhat would you like to do?\nEnter 'A' to move to Team A\nEnter 'R' to remove\nCancel to keep in Team B:`, 'A');
+                    
+                    if (!choice) {
+                        return;
+                    }
+                    
+                    const action = choice.toUpperCase().trim();
+                    if (action === 'A') {
+                        this.tempTeamAvsB.teamB = this.tempTeamAvsB.teamB.filter(p => p.id !== playerId);
+                        this.tempTeamAvsB.teamA.push(player);
+                        this.showToast(`${player.name} moved to Team A`, 'success');
+                    } else if (action === 'R') {
+                        this.tempTeamAvsB.teamB = this.tempTeamAvsB.teamB.filter(p => p.id !== playerId);
+                        this.showToast(`${player.name} removed from teams`, 'warning');
+                    } else {
+                        return;
+                    }
+                }
+                
+                this.renderTeamAvsBPlayers();
+            },
+            
+            confirmTeamAvsB() {
+                if (!this.tempTeamAvsB.courseName) {
+                    this.showToast('Please select a course', 'error');
+                    return;
+                }
+                
+                if (this.tempTeamAvsB.teamA.length === 0 && this.tempTeamAvsB.teamB.length === 0) {
+                    this.showToast('Please assign at least one player to a team', 'warning');
+                    return;
+                }
+                
+                // Save the teams
+                this.comps.teamAvsB = JSON.parse(JSON.stringify(this.tempTeamAvsB));
+                
+                this.saveData();
+                this.hideTeamAvsBModal();
+                this.renderCompsResults();
+                
+                this.showToast(`Team A vs Team B created: Team A (${this.comps.teamAvsB.teamA.length}) vs Team B (${this.comps.teamAvsB.teamB.length})`, 'success');
+            },
+            
+            calculateTeamAvsB() {
+                if (!this.comps.teamAvsB.courseName || 
+                    (this.comps.teamAvsB.teamA.length === 0 && this.comps.teamAvsB.teamB.length === 0)) {
+                    this.showToast('No Team A vs Team B competition created yet', 'warning');
+                    return;
+                }
+                
+                const calculateTeamScores = (team) => {
+                    let totalPoints = 0;
+                    let totalGross = 0;
+                    const playerScores = [];
+                    
+                    team.forEach(player => {
+                        let playerTotalPoints = 0;
+                        let playerTotalGross = 0;
+                        
+                        for (let hole = 1; hole <= 18; hole++) {
+                            const playerHoleScores = this.scores[player.id] || {};
+                            const score = playerHoleScores[hole];
+                            
+                            if (score !== undefined) {
+                                const course = this.courses.find(c => c.name === this.comps.teamAvsB.courseName);
+                                if (course) {
+                                    const holeData = course.holes.find(h => h.number === hole);
+                                    if (holeData) {
+                                        const result = this.calculateStablefordWithResult(
+                                            score, 
+                                            holeData.par, 
+                                            player.phc,
+                                            holeData.index
+                                        );
+                                        
+                                        playerTotalPoints += result.points;
+                                        playerTotalGross += score;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        totalPoints += playerTotalPoints;
+                        totalGross += playerTotalGross;
+                        playerScores.push({
+                            name: player.name,
+                            points: playerTotalPoints,
+                            gross: playerTotalGross
+                        });
+                    });
+                    
+                    return { totalPoints, totalGross, playerScores };
+                };
+                
+                this.comps.teamAvsB.teamAScores = calculateTeamScores(this.comps.teamAvsB.teamA);
+                this.comps.teamAvsB.teamBScores = calculateTeamScores(this.comps.teamAvsB.teamB);
+                
+                this.saveData();
+                this.renderCompsResults();
+                this.showToast('Team A vs Team B scores calculated!', 'success');
+            },
+            
             deleteCompetition(compType, groupName) {
                 let confirmMessage = '';
                 let teamsToDelete = 0;
@@ -5156,6 +5606,8 @@
                 } else if (compType === 'MixedScore') {
                     teamsToDelete = this.comps.mixedScore.length;
                     confirmMessage = `Delete all ${teamsToDelete} Mixed Score teams?`;
+                } else if (compType === 'TeamAvsB') {
+                    confirmMessage = 'Delete Team A vs Team B competition?';
                 }
                 
                 if (!confirm(confirmMessage)) return;
@@ -5172,6 +5624,9 @@
                 } else if (compType === 'MixedScore') {
                     this.comps.mixedScore = [];
                     this.showToast(`Deleted all Mixed Score teams`, 'warning');
+                } else if (compType === 'TeamAvsB') {
+                    this.comps.teamAvsB = { teamA: [], teamB: [], courseName: '' };
+                    this.showToast(`Deleted Team A vs Team B competition`, 'warning');
                 }
                 
                 this.saveData();
@@ -5575,6 +6030,148 @@
                         html += `
                             <div style="text-align: center; padding: 20px; color: #7f8c8d; background: #f8f9fa; border-radius: 3px;">
                                 <p>No scores calculated yet. Click "Calculate" to compute team scores.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                // Team A vs Team B Results
+                if (this.comps.teamAvsB && this.comps.teamAvsB.courseName && 
+                    (this.comps.teamAvsB.teamA.length > 0 || this.comps.teamAvsB.teamB.length > 0)) {
+                    
+                    const teamAScores = this.comps.teamAvsB.teamAScores || { totalPoints: 0, totalGross: 0, playerScores: [] };
+                    const teamBScores = this.comps.teamAvsB.teamBScores || { totalPoints: 0, totalGross: 0, playerScores: [] };
+                    const hasScores = teamAScores.totalPoints > 0 || teamBScores.totalPoints > 0;
+                    
+                    const winner = teamAScores.totalPoints > teamBScores.totalPoints ? 'Team A' : 
+                                   teamBScores.totalPoints > teamAScores.totalPoints ? 'Team B' : 'Tie';
+                    
+                    html += `
+                        <div style="background: white; border-radius: 5px; padding: 12px; margin-bottom: 15px; border: 1px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h3 style="color: #2c3e50; margin: 0; padding-bottom: 5px; border-bottom: 2px solid #e74c3c; font-size: 1rem; flex: 1;">
+                                    ⚔️ Team A vs Team B
+                                    <span style="font-size: 0.7rem; color: #3498db; margin-left: 10px; font-weight: bold;">
+                                        ⛳ ${this.comps.teamAvsB.courseName}
+                                    </span>
+                                    ${hasScores ? 
+                                        `<span style="font-size: 0.7rem; color: #f39c12; margin-left: 10px; font-weight: bold;">
+                                            🏆 Winner: ${winner}
+                                        </span>` : ''
+                                    }
+                                </h3>
+                                <button onclick="app.deleteCompetition('TeamAvsB', '')" class="btn-danger btn-small" style="font-size: 10px; padding: 4px 8px; white-space: nowrap;">🗑️ Delete</button>
+                            </div>
+                    `;
+                    
+                    html += `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                    `;
+                    
+                    // Team A
+                    html += `
+                        <div style="border: 2px solid #3498db; border-radius: 5px; padding: 10px; background: #ebf5fb;">
+                            <h4 style="color: #2c3e50; margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 2px solid #3498db; font-size: 0.9rem;">
+                                Team A (${this.comps.teamAvsB.teamA.length} players)
+                            </h4>
+                            ${hasScores ? 
+                                `<div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 10px; border-left: 3px solid #3498db;">
+                                    <div style="font-size: 0.8rem; font-weight: bold; color: #2c3e50;">Team Totals:</div>
+                                    <div style="display: flex; gap: 15px; margin-top: 5px; font-size: 0.75rem;">
+                                        <div><strong>Stableford:</strong> <span style="color: #2ecc71; font-weight: bold;">${teamAScores.totalPoints}</span></div>
+                                        <div><strong>Gross:</strong> <span style="color: #e74c3c; font-weight: bold;">${teamAScores.totalGross}</span></div>
+                                    </div>
+                                </div>` : ''
+                            }
+                            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                                <thead>
+                                    <tr style="background: #3498db; color: white;">
+                                        <th style="padding: 4px; text-align: left;">Player</th>
+                                        ${hasScores ? 
+                                            `<th style="padding: 4px; text-align: center; width: 50px; background: #2ecc71;">Points</th>
+                                            <th style="padding: 4px; text-align: center; width: 50px;">Gross</th>` : ''
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    this.comps.teamAvsB.teamA.forEach((player, idx) => {
+                        const playerScore = hasScores ? teamAScores.playerScores.find(ps => ps.name === player.name) : null;
+                        html += `
+                            <tr style="background: ${idx % 2 === 0 ? '#f8f9fa' : 'white'};">
+                                <td style="padding: 4px;">${player.name}</td>
+                                ${hasScores && playerScore ? 
+                                    `<td style="padding: 4px; text-align: center; font-weight: bold; background: #e8f8f5;">${playerScore.points}</td>
+                                    <td style="padding: 4px; text-align: center;">${playerScore.gross}</td>` : 
+                                    hasScores ? `<td style="padding: 4px; text-align: center;">-</td><td style="padding: 4px; text-align: center;">-</td>` : ''
+                                }
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    // Team B
+                    html += `
+                        <div style="border: 2px solid #e74c3c; border-radius: 5px; padding: 10px; background: #fadbd8;">
+                            <h4 style="color: #2c3e50; margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 2px solid #e74c3c; font-size: 0.9rem;">
+                                Team B (${this.comps.teamAvsB.teamB.length} players)
+                            </h4>
+                            ${hasScores ? 
+                                `<div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 10px; border-left: 3px solid #e74c3c;">
+                                    <div style="font-size: 0.8rem; font-weight: bold; color: #2c3e50;">Team Totals:</div>
+                                    <div style="display: flex; gap: 15px; margin-top: 5px; font-size: 0.75rem;">
+                                        <div><strong>Stableford:</strong> <span style="color: #2ecc71; font-weight: bold;">${teamBScores.totalPoints}</span></div>
+                                        <div><strong>Gross:</strong> <span style="color: #e74c3c; font-weight: bold;">${teamBScores.totalGross}</span></div>
+                                    </div>
+                                </div>` : ''
+                            }
+                            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                                <thead>
+                                    <tr style="background: #e74c3c; color: white;">
+                                        <th style="padding: 4px; text-align: left;">Player</th>
+                                        ${hasScores ? 
+                                            `<th style="padding: 4px; text-align: center; width: 50px; background: #2ecc71;">Points</th>
+                                            <th style="padding: 4px; text-align: center; width: 50px;">Gross</th>` : ''
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    this.comps.teamAvsB.teamB.forEach((player, idx) => {
+                        const playerScore = hasScores ? teamBScores.playerScores.find(ps => ps.name === player.name) : null;
+                        html += `
+                            <tr style="background: ${idx % 2 === 0 ? '#f8f9fa' : 'white'};">
+                                <td style="padding: 4px;">${player.name}</td>
+                                ${hasScores && playerScore ? 
+                                    `<td style="padding: 4px; text-align: center; font-weight: bold; background: #e8f8f5;">${playerScore.points}</td>
+                                    <td style="padding: 4px; text-align: center;">${playerScore.gross}</td>` : 
+                                    hasScores ? `<td style="padding: 4px; text-align: center;">-</td><td style="padding: 4px; text-align: center;">-</td>` : ''
+                                }
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    html += `</div>`; // Close grid
+                    
+                    if (!hasScores) {
+                        html += `
+                            <div style="text-align: center; padding: 15px; margin-top: 10px; color: #7f8c8d; background: #f8f9fa; border-radius: 3px;">
+                                <p>No scores calculated yet. Click "Calculate Scores" to compute team totals.</p>
                             </div>
                         `;
                     }
