@@ -3158,7 +3158,17 @@
                     return;
                 }
                 
-                let filteredPlayers = this.players.filter(p => p.course === course.name);
+                console.log('Scorecard Debug:', {
+                    courseName: course.name,
+                    totalPlayers: this.players.length,
+                    playerCourses: this.players.map(p => ({ name: p.name, course: p.course }))
+                });
+                
+                // Case-insensitive course name matching
+                let filteredPlayers = this.players.filter(p => 
+                    p.course && course.name && 
+                    p.course.toLowerCase() === course.name.toLowerCase()
+                );
                 if (groupFilter !== 'all') {
                     if (groupFilter === 'ungrouped') {
                         filteredPlayers = filteredPlayers.filter(p => !p.group || p.group === '');
@@ -6784,7 +6794,8 @@
                         this.comps = data.comps || { fourBBB: [], fourPersonTeams: [], best3From4: [] };
                         this.masterLeaderboardData = data.masterLeaderboardData || [];
                         this.currentTab = data.currentTab || 'players';
-                        this.scorecardSettings = data.scorecardSettings || {
+                        // Clear scorecard settings on restore since course IDs will be different
+                        this.scorecardSettings = {
                             selectedCourseId: '',
                             selectedGroupFilter: 'all'
                         };
@@ -6807,6 +6818,8 @@
                         this.restoreScorecardSettings();
                         this.restoreLeaderboardSettings();
                         this.restorePairsSettings();
+                        // Force render scorecard after restore
+                        this.renderScorecard();
                         
                         event.target.value = '';
                         this.showToast('Backup restored!', 'success');
