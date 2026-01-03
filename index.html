@@ -1763,7 +1763,17 @@
                     
                     // Load comps data
                     const savedComps = localStorage.getItem('golfComps');
-                    if (savedComps) this.comps = JSON.parse(savedComps);
+                    if (savedComps) {
+                        const loadedComps = JSON.parse(savedComps);
+                        // Ensure all comp types exist
+                        this.comps = {
+                            fourBBB: loadedComps.fourBBB || [],
+                            fourPersonTeams: loadedComps.fourPersonTeams || [],
+                            best3From4: loadedComps.best3From4 || [],
+                            mixedScore: loadedComps.mixedScore || [],
+                            teamAvsB: loadedComps.teamAvsB || { teamA: [], teamB: [], courseName: '' }
+                        };
+                    }
                     
                     // Load master leaderboard data
                     const savedMasterLeaderboard = localStorage.getItem('golfMasterLeaderboard');
@@ -4403,7 +4413,11 @@
                     return;
                 }
                 
-                const eligiblePlayers = this.players.filter(p => p.course === courseName);
+                // Case-insensitive course matching
+                const eligiblePlayers = this.players.filter(p => 
+                    p.course && courseName && 
+                    p.course.toLowerCase() === courseName.toLowerCase()
+                );
                 
                 if (eligiblePlayers.length === 0) {
                     container.innerHTML = '<p style="text-align: center; color: #7f8c8d; font-size: 0.9rem;">No players assigned to this course</p>';
@@ -4526,15 +4540,21 @@
                     return;
                 }
                 
-                // Check if course exists
-                const course = this.courses.find(c => c.name === courseName);
+                // Check if course exists - case insensitive
+                const course = this.courses.find(c => 
+                    c.name && courseName && 
+                    c.name.toLowerCase() === courseName.toLowerCase()
+                );
                 if (!course) {
                     this.showToast(`Course "${courseName}" not found`, 'error');
                     return;
                 }
                 
-                // Filter players by course
-                let eligiblePlayers = this.players.filter(p => p.course === courseName);
+                // Filter players by course - case insensitive
+                let eligiblePlayers = this.players.filter(p => 
+                    p.course && courseName && 
+                    p.course.toLowerCase() === courseName.toLowerCase()
+                );
                 
                 if (eligiblePlayers.length < minPlayers) {
                     this.showToast(`Need at least ${minPlayers} players assigned to ${courseName}`, 'warning');
@@ -4986,8 +5006,11 @@
                             const score = playerScores[hole];
                             
                             if (score !== undefined) {
-                                // Find course for hole info
-                                const course = this.courses.find(c => c.name === team.course);
+                                // Find course for hole info - case insensitive
+                                const course = this.courses.find(c => 
+                                    c.name && team.course && 
+                                    c.name.toLowerCase() === team.course.toLowerCase()
+                                );
                                 if (course) {
                                     const holeData = course.holes.find(h => h.number === hole);
                                     if (holeData) {
@@ -5061,8 +5084,11 @@
                             const score = playerScores[hole];
                             
                             if (score !== undefined) {
-                                // Find course for hole info
-                                const course = this.courses.find(c => c.name === team.course);
+                                // Find course for hole info - case insensitive
+                                const course = this.courses.find(c => 
+                                    c.name && team.course && 
+                                    c.name.toLowerCase() === team.course.toLowerCase()
+                                );
                                 if (course) {
                                     const holeData = course.holes.find(h => h.number === hole);
                                     if (holeData) {
@@ -5127,8 +5153,11 @@
                             const score = playerScores[hole];
                             
                             if (score !== undefined) {
-                                // Find course for hole info
-                                const course = this.courses.find(c => c.name === team.course);
+                                // Find course for hole info - case insensitive
+                                const course = this.courses.find(c => 
+                                    c.name && team.course && 
+                                    c.name.toLowerCase() === team.course.toLowerCase()
+                                );
                                 if (course) {
                                     const holeData = course.holes.find(h => h.number === hole);
                                     if (holeData) {
@@ -5217,8 +5246,11 @@
                             const score = playerScores[hole];
                             
                             if (score !== undefined) {
-                                // Find course for hole info
-                                const course = this.courses.find(c => c.name === team.course);
+                                // Find course for hole info - case insensitive
+                                const course = this.courses.find(c => 
+                                    c.name && team.course && 
+                                    c.name.toLowerCase() === team.course.toLowerCase()
+                                );
                                 if (course) {
                                     const holeData = course.holes.find(h => h.number === hole);
                                     if (holeData) {
@@ -5371,7 +5403,11 @@
                     return;
                 }
                 
-                const coursePlayers = this.players.filter(p => p.course === courseName);
+                // Case-insensitive course matching
+                const coursePlayers = this.players.filter(p => 
+                    p.course && courseName && 
+                    p.course.toLowerCase() === courseName.toLowerCase()
+                );
                 
                 if (coursePlayers.length < 2) {
                     this.showToast('Need at least 2 players on this course', 'warning');
@@ -5443,8 +5479,11 @@
                     existingAvailable.remove();
                 }
                 
-                // Show available players to add
-                const coursePlayers = this.players.filter(p => p.course === courseName);
+                // Show available players to add - case insensitive
+                const coursePlayers = this.players.filter(p => 
+                    p.course && courseName && 
+                    p.course.toLowerCase() === courseName.toLowerCase()
+                );
                 const assignedIds = new Set([
                     ...this.tempTeamAvsB.teamA.map(p => p.id),
                     ...this.tempTeamAvsB.teamB.map(p => p.id)
@@ -5593,7 +5632,11 @@
                             const score = playerHoleScores[hole];
                             
                             if (score !== undefined) {
-                                const course = this.courses.find(c => c.name === this.comps.teamAvsB.courseName);
+                                // Case-insensitive course matching
+                                const course = this.courses.find(c => 
+                                    c.name && this.comps.teamAvsB.courseName && 
+                                    c.name.toLowerCase() === this.comps.teamAvsB.courseName.toLowerCase()
+                                );
                                 if (course) {
                                     const holeData = course.holes.find(h => h.number === hole);
                                     if (holeData) {
