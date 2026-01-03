@@ -4023,7 +4023,11 @@
                     
                     // Only process if player has a course assigned
                     if (player.course) {
-                        const course = this.courses.find(c => c.name === player.course);
+                        // Case-insensitive course name matching
+                        const course = this.courses.find(c => 
+                            c.name && player.course && 
+                            c.name.toLowerCase() === player.course.toLowerCase()
+                        );
                         if (course) {
                             const playerScores = this.scores[player.id] || {};
                             let hasScores = false;
@@ -6385,10 +6389,15 @@
                 
                 this.players.forEach(player => {
                     if (player.course) {
-                        if (!coursesWithPlayers[player.course]) {
-                            coursesWithPlayers[player.course] = [];
+                        // Normalize course name to lowercase for grouping
+                        const normalizedCourseName = player.course.toLowerCase();
+                        if (!coursesWithPlayers[normalizedCourseName]) {
+                            coursesWithPlayers[normalizedCourseName] = {
+                                displayName: player.course, // Keep original case for display
+                                players: []
+                            };
                         }
-                        coursesWithPlayers[player.course].push(player);
+                        coursesWithPlayers[normalizedCourseName].players.push(player);
                     }
                 });
                 
@@ -6405,11 +6414,18 @@
                 let html = '<div style="display: flex; flex-direction: column; gap: 20px;">';
                 
                 // Process each course separately
-                Object.keys(coursesWithPlayers).forEach(courseName => {
-                    const course = this.courses.find(c => c.name === courseName);
+                Object.keys(coursesWithPlayers).forEach(normalizedCourseName => {
+                    const courseGroup = coursesWithPlayers[normalizedCourseName];
+                    const courseName = courseGroup.displayName;
+                    
+                    // Case-insensitive course name matching
+                    const course = this.courses.find(c => 
+                        c.name && normalizedCourseName && 
+                        c.name.toLowerCase() === normalizedCourseName
+                    );
                     if (!course) return;
                     
-                    const playersForCourse = coursesWithPlayers[courseName];
+                    const playersForCourse = courseGroup.players;
                     
                     // Calculate leaderboard data for this course
                     let leaderboardData = playersForCourse
