@@ -3926,11 +3926,20 @@
                     return;
                 }
                 
-                // Get players assigned to the selected course - case insensitive
-                const coursePlayers = this.players.filter(player => 
-                    player.course && selectedCourse && 
-                    player.course.toLowerCase() === selectedCourse.toLowerCase()
-                );
+                // Get players assigned to the selected course who have scores - case insensitive
+                const coursePlayers = this.players.filter(player => {
+                    if (!player.course || !selectedCourse) return false;
+                    if (player.course.toLowerCase() !== selectedCourse.toLowerCase()) return false;
+                    
+                    // Check if player has any scores entered
+                    const playerScores = this.scores[player.id] || {};
+                    const hasScores = Object.keys(playerScores).some(hole => {
+                        const score = playerScores[hole];
+                        return score !== undefined && score !== null && score !== '' && score !== 0;
+                    });
+                    
+                    return hasScores;
+                });
                 
                 if (coursePlayers.length < 2) {
                     this.showToast(`Need at least 2 players assigned to ${selectedCourse} for pairs`, 'warning');
