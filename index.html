@@ -3926,8 +3926,11 @@
                     return;
                 }
                 
-                // Get players assigned to the selected course
-                const coursePlayers = this.players.filter(player => player.course === selectedCourse);
+                // Get players assigned to the selected course - case insensitive
+                const coursePlayers = this.players.filter(player => 
+                    player.course && selectedCourse && 
+                    player.course.toLowerCase() === selectedCourse.toLowerCase()
+                );
                 
                 if (coursePlayers.length < 2) {
                     this.showToast(`Need at least 2 players assigned to ${selectedCourse} for pairs`, 'warning');
