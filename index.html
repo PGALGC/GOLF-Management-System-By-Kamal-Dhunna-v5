@@ -1952,11 +1952,14 @@
                 document.getElementById('randomDrawPairs').addEventListener('click', () => this.randomDrawPairs());
                 document.getElementById('calculatePairsScores').addEventListener('click', () => this.calculatePairsScores());
                 document.getElementById('clearPairsScores').addEventListener('click', () => {
-                    if (confirm('Clear all pairs scores?')) {
+                    if (confirm('Clear all pairs and scores? This will remove the entire draw.')) {
+                        this.pairs = [];
                         this.pairsScores = {};
+                        this.pairsMoney = {};
+                        this.pairsCourseGenerated = '';
                         this.saveData();
                         this.renderPairs();
-                        this.showToast('All pairs scores cleared', 'warning');
+                        this.showToast('All pairs and scores cleared', 'warning');
                     }
                 });
                 
@@ -3653,27 +3656,49 @@
                     const player1Scores = this.scores[pair.player1.id] || {};
                     const player2Scores = this.scores[pair.player2.id] || {};
                     
-                    let pairTotalPoints = 0;
-                    let pairTotalGross = 0;
-                    let pairFront9Points = 0;
-                    let pairBack9Points = 0;
+                    let player1TotalPoints = 0;
+                    let player1TotalGross = 0;
+                    let player1Front9Points = 0;
+                    let player1Back9Points = 0;
                     
-                    // Calculate for each hole
+                    let player2TotalPoints = 0;
+                    let player2TotalGross = 0;
+                    let player2Front9Points = 0;
+                    let player2Back9Points = 0;
+                    
+                    // Calculate Player 1 scores
                     for (let i = 1; i <= 18; i++) {
                         const hole = course.holes.find(h => h.number === i);
                         if (!hole) continue;
                         
                         const player1Score = player1Scores[i];
-                        const player2Score = player2Scores[i];
-                        
-                        // If both players have scores for this hole
-                        if (player1Score !== undefined && player2Score !== undefined) {
+                        if (player1Score !== undefined && player1Score !== null && player1Score !== '' && player1Score !== 0) {
                             const player1Result = this.calculateStablefordWithResult(
                                 player1Score, 
                                 hole.par, 
                                 pair.player1.phc,
                                 hole.index
                             );
+                            
+                            player1TotalPoints += player1Result.points;
+                            player1TotalGross += parseInt(player1Score);
+                            
+                            if (i <= 9) {
+                                player1Front9Points += player1Result.points;
+                            } else {
+                                player1Back9Points += player1Result.points;
+                            }
+                            calculatedCount++;
+                        }
+                    }
+                    
+                    // Calculate Player 2 scores
+                    for (let i = 1; i <= 18; i++) {
+                        const hole = course.holes.find(h => h.number === i);
+                        if (!hole) continue;
+                        
+                        const player2Score = player2Scores[i];
+                        if (player2Score !== undefined && player2Score !== null && player2Score !== '' && player2Score !== 0) {
                             const player2Result = this.calculateStablefordWithResult(
                                 player2Score, 
                                 hole.par, 
@@ -3681,21 +3706,23 @@
                                 hole.index
                             );
                             
-                            // Use the better score (higher points) for the pair
-                            const bestResult = player1Result.points >= player2Result.points ? player1Result : player2Result;
-                            
-                            pairTotalPoints += bestResult.points;
-                            pairTotalGross += Math.min(player1Score, player2Score); // Use the better gross score
+                            player2TotalPoints += player2Result.points;
+                            player2TotalGross += parseInt(player2Score);
                             
                             if (i <= 9) {
-                                pairFront9Points += bestResult.points;
+                                player2Front9Points += player2Result.points;
                             } else {
-                                pairBack9Points += bestResult.points;
+                                player2Back9Points += player2Result.points;
                             }
-                            
                             calculatedCount++;
                         }
                     }
+                    
+                    // Add both players' scores together (not better ball)
+                    const pairTotalPoints = player1TotalPoints + player2TotalPoints;
+                    const pairTotalGross = player1TotalGross + player2TotalGross;
+                    const pairFront9Points = player1Front9Points + player2Front9Points;
+                    const pairBack9Points = player1Back9Points + player2Back9Points;
                     
                     // Store the pair's score
                     this.pairsScores[pair.id] = {
